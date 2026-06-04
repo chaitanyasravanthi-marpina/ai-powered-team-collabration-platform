@@ -1,45 +1,66 @@
-// Step 1 - Load environment variables FIRST
-// Must be before anything else that needs env variables
 import dotenv from 'dotenv'
 dotenv.config()
 
-// Step 2 - Import packages
 import express from 'express'
+import { createServer } from 'http'
+import { Server } from 'socket.io'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import connectDB from './config/db.js'
+
+// Import routes
 import authRoutes from './routes/auth.routes.js'
 import workspaceRoutes from './routes/workspace.routes.js'
 import channelRoutes from './routes/channel.routes.js'
+import messageRoutes from './routes/message.routes.js'
 
-
-// Step 3 - Connect to database
 connectDB()
 
-// Step 4 - Create Express app
 const app = express()
 
-// Step 5 - Register Middleware
-// These run on EVERY request before reaching routes
-app.use(express.json())         // Parse JSON request bodies
-app.use(cookieParser())         // Parse cookies
-app.use(cors({
-  origin: 'http://localhost:5173',  // React app URL
-  credentials: true                  // Allow cookies
-}))
-app.use('/api/auth', authRoutes)
-app.use('/api/workspaces',workspaceRoutes)
-// Must be registered as nested route under workspaces
-app.use('/api/workspaces/:workspaceId/channels', channelRoutes)
+// Create HTTP server wrapping Express
+// Socket.io needs raw HTTP server, not just Express
+const httpServer = createServer(app)
 
-
-// Step 6 - Routes (we'll add these soon)
-app.get('/', (req, res) => {
-  res.json({ message: 'Server is running' })
+// Attach Socket.io to HTTP server
+const io = new Server(httpServer, {
+  cors: {
+    origin: 'http://localhost:5173',
+    credentials: true
+  }
 })
 
-// Step 7 - Start server
+// Middleware
+app.use(express.json())
+app.use(cookieParser())
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}))
+
+// Routes
+app.use('/api/auth', authRoutes)
+app.use('/api/workspaces', workspaceRoutes)
+app.use('/api/workspaces/:workspaceId/channels', channelRoutes)
+app.use('/api/workspaces/:workspaceId/channels', messageRoutes)
+
+// Global error handler
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid JSON in request body'
+    })
+  }
+  next(err)
+})
+
+// ─── Socket.io Logic ──────────────────────────────────────────
+import { setupSocket } from './socket/socket.js'
+setupSocket(io)
+
+// Use httpServer instead of app to listen
 const PORT = process.env.PORT || 5000
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
