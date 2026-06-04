@@ -9,6 +9,8 @@ import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import connectDB from './config/db.js'
 import authRoutes from './routes/auth.routes.js'
+import workspaceRoutes from './routes/workspace.routes.js'
+
 
 // Step 3 - Connect to database
 connectDB()
@@ -25,6 +27,7 @@ app.use(cors({
   credentials: true                  // Allow cookies
 }))
 app.use('/api/auth', authRoutes)
+app.use('/api/workspaces',workspaceRoutes)
 
 
 // Step 6 - Routes (we'll add these soon)
