@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Socket Test</title>
+<script src="http://localhost:5000/socket.io/socket.io.js"></script>
+</head>
+
+<body>
+    <h2>Socket.io Test</h2>
+
+    <input id="token" placeholder="Paste JWT token here" style="width:400px" />
+    <input id="channelId" placeholder="Paste channel ID here" style="width:300px" />
+    <br><br>
+    <button onclick="connectSocket()">Connect</button>
+    <button onclick="joinChannel()">Join Channel</button>
+    <br><br>
+    <input id="workspaceId" placeholder="Paste workspace ID here" style="width:300px"/>
+    <input id="message" placeholder="Type a message" />
+    <button onclick="sendMessage()">Send</button>
+    <br><br>
+    <div id="log" style="border:1px solid #ccc; padding:10px; height:300px; overflow-y:auto"></div>
+
+    <script>
+        let socket
+
+        function log(msg) {
+            const div = document.getElementById('log')
+            div.innerHTML += `<p>${new Date().toLocaleTimeString()}: ${msg}</p>`
+            div.scrollTop = div.scrollHeight
+        }
+
+        function connectSocket() {
+            const token = document.getElementById('token').value
+
+            socket = io('http://localhost:5000', {
+                auth: { token }
+            })
+
+            socket.on('connect', () => {
+                log('✅ Connected to server')
+            })
+
+            socket.on('previous-messages', (messages) => {
+                log(`📜 Received ${messages.length} previous messages`)
+                messages.forEach(m => {
+                    log(`[History] ${m.sender.name}: ${m.content}`)
+                })
+            })
+
+            socket.on('new-message', (message) => {
+                log(`💬 ${message.sender.name}: ${message.content}`)
+            })
+
+            socket.on('user-typing', (data) => {
+                log(`✏️ ${data.name} is typing...`)
+            })
+
+            socket.on('user-online', (data) => {
+                log(`🟢 User online: ${data.userId}`)
+            })
+
+            socket.on('user-offline', (data) => {
+                log(`🔴 User offline: ${data.userId}`)
+            })
+
+            socket.on('error', (data) => {
+                log(`❌ Error: ${data.message}`)
+            })
+
+            socket.on('disconnect', () => {
+                log('❌ Disconnected from server')
+            })
+        }
+
+        function joinChannel() {
+            const channelId = document.getElementById('channelId').value
+            socket.emit('join-channel', channelId)
+            log(`Joining channel: ${channelId}`)
+        }
+
+       function sendMessage() {
+  const content = document.getElementById('message').value
+  const channelId = document.getElementById('channelId').value
+  const workspaceId = document.getElementById('workspaceId').value
+
+  socket.emit('send-message', {
+    channelId,
+    workspaceId,
+    content
+  })
+}
+    </script>
+</body>
+
+</html>

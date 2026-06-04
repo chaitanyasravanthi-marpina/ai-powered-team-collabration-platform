@@ -37,6 +37,14 @@ app.use(cors({
   origin: 'http://localhost:5173',
   credentials: true
 }))
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+
+// Serve test file
+app.use(express.static(__dirname))
 
 // Routes
 app.use('/api/auth', authRoutes)
