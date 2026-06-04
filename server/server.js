@@ -1,19 +1,24 @@
 import dotenv from 'dotenv'
 dotenv.config()
+console.log('API KEY EXISTS:', !!process.env.GROQ_API_KEY);
+
+
 
 import express from 'express'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
+import { fileURLToPath } from 'url'    // ← move to top
+import { dirname } from 'path'         // ← move to top
 import connectDB from './config/db.js'
-
-// Import routes
 import authRoutes from './routes/auth.routes.js'
 import workspaceRoutes from './routes/workspace.routes.js'
 import channelRoutes from './routes/channel.routes.js'
 import messageRoutes from './routes/message.routes.js'
 import noteRoutes from './routes/note.routes.js'
+import aiRoutes from './routes/ai.routes.js'
+import { setupSocket } from './socket/socket.js'
 
 connectDB()
 
@@ -38,8 +43,7 @@ app.use(cors({
   origin: 'http://localhost:5173',
   credentials: true
 }))
-import { fileURLToPath } from 'url'
-import { dirname, join } from 'path'
+
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -53,6 +57,7 @@ app.use('/api/workspaces', workspaceRoutes)
 app.use('/api/workspaces/:workspaceId/channels', channelRoutes)
 app.use('/api/workspaces/:workspaceId/channels', messageRoutes)
 app.use('/api/workspaces/:workspaceId/notes', noteRoutes)
+app.use('/api/workspaces/:workspaceId/ai', aiRoutes)
 
 // Global error handler
 app.use((err, req, res, next) => {
@@ -66,7 +71,7 @@ app.use((err, req, res, next) => {
 })
 
 // ─── Socket.io Logic ──────────────────────────────────────────
-import { setupSocket } from './socket/socket.js'
+
 setupSocket(io)
 
 // Use httpServer instead of app to listen
