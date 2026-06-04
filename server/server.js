@@ -10,6 +10,7 @@ import cookieParser from 'cookie-parser'
 import connectDB from './config/db.js'
 import authRoutes from './routes/auth.routes.js'
 import workspaceRoutes from './routes/workspace.routes.js'
+import channelRoutes from './routes/channel.routes.js'
 
 
 // Step 3 - Connect to database
@@ -28,6 +29,8 @@ app.use(cors({
 }))
 app.use('/api/auth', authRoutes)
 app.use('/api/workspaces',workspaceRoutes)
+// Must be registered as nested route under workspaces
+app.use('/api/workspaces/:workspaceId/channels', channelRoutes)
 
 
 // Step 6 - Routes (we'll add these soon)
