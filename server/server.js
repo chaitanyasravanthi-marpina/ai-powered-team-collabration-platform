@@ -13,6 +13,7 @@ import authRoutes from './routes/auth.routes.js'
 import workspaceRoutes from './routes/workspace.routes.js'
 import channelRoutes from './routes/channel.routes.js'
 import messageRoutes from './routes/message.routes.js'
+import noteRoutes from './routes/note.routes.js'
 
 connectDB()
 
@@ -51,6 +52,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/workspaces', workspaceRoutes)
 app.use('/api/workspaces/:workspaceId/channels', channelRoutes)
 app.use('/api/workspaces/:workspaceId/channels', messageRoutes)
+app.use('/api/workspaces/:workspaceId/notes', noteRoutes)
 
 // Global error handler
 app.use((err, req, res, next) => {
