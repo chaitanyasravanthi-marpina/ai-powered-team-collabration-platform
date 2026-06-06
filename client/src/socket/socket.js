@@ -15,7 +15,9 @@ export const connectSocket = (token) => {
   }
 
   currentToken = token
-  socket = io('http://localhost:5000', {
+ const serverURL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000'
+
+socket = io(serverURL, {
     auth: { token },
     withCredentials: true
   })

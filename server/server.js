@@ -24,11 +24,13 @@ const app = express()
 const httpServer = createServer(app)
 
 const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:5174"
-]
+  'http://localhost:5173',
+  'http://localhost:5174',
+  process.env.CLIENT_URL
+].filter(Boolean)
 
-// Middleware
+console.log('Allowed origins:', allowedOrigins)
+
 app.use(express.json())
 app.use(cookieParser())
 
@@ -37,13 +39,13 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true)
     } else {
-      callback(new Error("Not allowed by CORS"))
+      console.log('Blocked by CORS:', origin)
+      callback(new Error('Not allowed by CORS'))
     }
   },
   credentials: true
 }))
 
-// Socket.io
 const io = new Server(httpServer, {
   cors: {
     origin: allowedOrigins,
@@ -51,14 +53,11 @@ const io = new Server(httpServer, {
   }
 })
 
-// File paths
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-// Static
 app.use(express.static(__dirname))
 
-// Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/workspaces', workspaceRoutes)
 app.use('/api/workspaces/:workspaceId/channels', channelRoutes)
@@ -66,10 +65,8 @@ app.use('/api/workspaces/:workspaceId/channels', messageRoutes)
 app.use('/api/workspaces/:workspaceId/notes', noteRoutes)
 app.use('/api/workspaces/:workspaceId/ai', aiRoutes)
 
-// Socket setup
 setupSocket(io)
 
-// Error handler
 app.use((err, req, res, next) => {
   if (err.type === 'entity.parse.failed') {
     return res.status(400).json({
