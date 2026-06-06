@@ -27,7 +27,7 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'https://ai-powered-team-collabration-platfo.vercel.app',
-  'https://ai-powered-tea-git-8699b9-chaitanya-sravanthi-marpinas-projects.vercel.app',
+
   process.env.CLIENT_URL
 ].filter(Boolean)
 
