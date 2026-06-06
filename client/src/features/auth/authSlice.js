@@ -52,6 +52,7 @@ const authSlice = createSlice({
   name: 'auth',
   initialState: {
     user: null,
+    token: null,
     loading: false,
     error: null,
     initialized: false
@@ -70,9 +71,7 @@ const authSlice = createSlice({
       .addCase(registerUser.fulfilled, (state, action) => {
         state.loading = false
         state.user = action.payload.user
-        if (action.payload.token) {
-          localStorage.setItem('socketToken', action.payload.token)
-        }
+        state.token = action.payload.token
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.loading = false
@@ -86,9 +85,7 @@ const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false
         state.user = action.payload.user
-        if (action.payload.token) {
-          localStorage.setItem('socketToken', action.payload.token)
-        }
+        state.token = action.payload.token
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false
@@ -97,13 +94,14 @@ const authSlice = createSlice({
 
       .addCase(logoutUser.fulfilled, (state) => {
         state.user = null
-        localStorage.removeItem('socketToken')
+        state.token = null
       })
 
-      .addCase(getMe.fulfilled, (state, action) => {
-        state.user = action.payload.user
-        state.initialized = true
-      })
+    .addCase(getMe.fulfilled, (state, action) => {
+  state.user = action.payload.user
+  state.token = action.payload.token    // ← add this line
+  state.initialized = true
+})
       .addCase(getMe.rejected, (state) => {
         state.user = null
         state.initialized = true

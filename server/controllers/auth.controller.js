@@ -130,9 +130,22 @@ export const logout = async (req, res) => {
 
 // ─── Get Current User ─────────────────────────────────────────
 export const getMe = async (req, res) => {
-  // req.user is attached by protect middleware
-  res.status(200).json({
-    success: true,
-    user: req.user
-  })
+  try {
+    const token = jwt.sign(
+      { userId: req.user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    )
+
+    res.status(200).json({
+      success: true,
+      token,
+      user: req.user
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
 }

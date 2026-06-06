@@ -29,9 +29,15 @@ const ProtectedRoute = ({ children }) => {
 function App() {
   const dispatch = useDispatch()
 
-  useEffect(() => {
+ useEffect(() => {
+  const token = localStorage.getItem("socketToken")
+  if (token) {
     dispatch(getMe())
-  }, [dispatch])
+  } else {
+    // mark initialization complete if no token
+    dispatch({ type: "auth/getMe/rejected" })
+  }
+}, [dispatch])
 
   return (
     <Routes>

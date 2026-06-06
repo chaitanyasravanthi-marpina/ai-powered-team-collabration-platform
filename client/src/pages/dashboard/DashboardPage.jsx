@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { logoutUser } from '../../features/auth/authSlice'
+import api from '../../services/api'
 import {
   fetchWorkspaces,
   createWorkspace,
@@ -47,15 +48,25 @@ const DashboardPage = () => {
     }
   }
 
+  const handleDeleteWorkspace = async (workspaceId, workspaceName) => {
+    if (!window.confirm(`Delete "${workspaceName}"? This cannot be undone.`)) {
+      return
+    }
+    try {
+      await api.delete(`/workspaces/${workspaceId}`)
+      dispatch(fetchWorkspaces())
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to delete workspace')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navbar */}
       <nav className="bg-white border-b px-6 py-4 flex justify-between items-center">
         <h1 className="text-xl font-bold text-blue-600">TeamCollab</h1>
         <div className="flex items-center gap-4">
-          <span className="text-gray-600 text-sm">
-            {user?.email}
-          </span>
+          <span className="text-gray-600 text-sm">{user?.email}</span>
           <button
             onClick={handleLogout}
             className="text-sm text-red-500 hover:text-red-600"
@@ -92,18 +103,18 @@ const DashboardPage = () => {
           </div>
         </div>
 
-    {/* Error */}
-{error && (
-  <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm flex justify-between items-center">
-    <span>{error}</span>
-    <button
-      onClick={() => dispatch(clearWorkspaceError())}
-      className="text-red-400 hover:text-red-600 ml-4 font-bold"
-    >
-      ✕
-    </button>
-  </div>
-)}
+        {/* Error */}
+        {error && (
+          <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm flex justify-between items-center">
+            <span>{error}</span>
+            <button
+              onClick={() => dispatch(clearWorkspaceError())}
+              className="text-red-400 hover:text-red-600 ml-4 font-bold"
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         {/* Workspace Grid */}
         {loading ? (
@@ -136,20 +147,55 @@ const DashboardPage = () => {
                       {workspace.name.charAt(0).toUpperCase()}
                     </span>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                    workspace.role === 'admin'
-                      ? 'bg-purple-100 text-purple-600'
-                      : 'bg-green-100 text-green-600'
-                  }`}>
-                    {workspace.role}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                      workspace.role === 'admin'
+                        ? 'bg-purple-100 text-purple-600'
+                        : 'bg-green-100 text-green-600'
+                    }`}>
+                      {workspace.role}
+                    </span>
+                    {workspace.role === 'admin' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteWorkspace(workspace._id, workspace.name)
+                        }}
+                        className="text-red-400 hover:text-red-600 text-xs px-2 py-1 rounded hover:bg-red-50"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
+
                 <h3 className="font-semibold text-gray-800 mb-1">
                   {workspace.name}
                 </h3>
-                <p className="text-gray-400 text-sm">
+                <p className="text-gray-400 text-sm mb-2">
                   {workspace.description || 'No description'}
                 </p>
+
+                {workspace.role === 'admin' && (
+                  <div className="mt-2 p-2 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-400 mb-1">Invite Code</p>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs font-mono text-blue-600 flex-1">
+                        {workspace.inviteCode}
+                      </code>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigator.clipboard.writeText(workspace.inviteCode)
+                          alert('Invite code copied!')
+                        }}
+                        className="text-xs text-gray-400 hover:text-gray-600"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -33,5 +33,40 @@ router.get('/:channelId/messages', async (req, res) => {
     })
   }
 })
+router.delete('/:channelId/messages/:messageId', async (req, res) => {
+  try {
+    const message = await Message.findById(req.params.messageId)
+
+    if (!message) {
+      return res.status(404).json({
+        success: false,
+        message: 'Message not found'
+      })
+    }
+
+    // Only sender can delete their own message
+    if (message.sender.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only delete your own messages'
+      })
+    }
+
+    await message.deleteOne()
+
+    // Notify everyone in channel via socket
+    // We'll handle this in the response
+    res.status(200).json({
+      success: true,
+      messageId: req.params.messageId
+    })
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+})
 
 export default router

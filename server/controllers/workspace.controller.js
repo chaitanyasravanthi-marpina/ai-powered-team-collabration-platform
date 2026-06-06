@@ -175,3 +175,59 @@ export const getWorkspaceMembers = async (req, res) => {
     })
   }
 }
+export const deleteWorkspace = async (req, res) => {
+  try {
+    const workspace = await Workspace.findById(req.params.id)
+
+    if (!workspace) {
+      return res.status(404).json({
+        success: false,
+        message: 'Workspace not found'
+      })
+    }
+
+    // Only owner can delete workspace
+    if (workspace.owner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the workspace owner can delete it'
+      })
+    }
+
+    // Delete everything related to workspace
+    // This is cascading delete
+    const Channel = (await import('../models/Channel.js')).default
+    const Message = (await import('../models/Message.js')).default
+    const Note = (await import('../models/Note.js')).default
+
+    // Get all channels first
+    const channels = await Channel.find({ workspaceId: req.params.id })
+    const channelIds = channels.map(c => c._id)
+
+    // Delete all messages in all channels
+    await Message.deleteMany({ channelId: { $in: channelIds } })
+
+    // Delete all channels
+    await Channel.deleteMany({ workspaceId: req.params.id })
+
+    // Delete all notes
+    await Note.deleteMany({ workspaceId: req.params.id })
+
+    // Delete all memberships
+    await WorkspaceMember.deleteMany({ workspaceId: req.params.id })
+
+    // Finally delete workspace
+    await workspace.deleteOne()
+
+    res.status(200).json({
+      success: true,
+      message: 'Workspace deleted successfully'
+    })
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+}

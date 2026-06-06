@@ -4,7 +4,8 @@ import {
   joinWorkspace,
   getMyWorkspaces,
   getWorkspace,
-  getWorkspaceMembers
+  getWorkspaceMembers,
+  deleteWorkspace
 } from '../controllers/workspace.controller.js'
 import protect from '../middleware/auth.middleware.js'
 
@@ -18,5 +19,6 @@ router.post('/join', joinWorkspace)
 router.get('/', getMyWorkspaces)
 router.get('/:id', getWorkspace)
 router.get('/:id/members', getWorkspaceMembers)
+router.delete('/:id', deleteWorkspace) 
 
 export default router

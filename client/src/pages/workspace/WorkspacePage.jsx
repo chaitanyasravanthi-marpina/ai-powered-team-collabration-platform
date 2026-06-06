@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
@@ -7,16 +6,24 @@ import {
   createChannel,
   setCurrentChannel
 } from '../../features/channel/channelSlice'
+import {
+  fetchMembers,
+  setUserOnline,
+  setUserOffline
+} from '../../features/members/membersSlice'
 import ChatArea from '../../components/channel/ChatArea'
+import api from '../../services/api'
+import { getSocket } from '../../socket/socket'
 
 const WorkspacePage = () => {
   const { workspaceId } = useParams()
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
-  const { user } = useSelector(state => state.auth)
+  const { user, token } = useSelector(state => state.auth)
   const { channels, currentChannel } = useSelector(state => state.channel)
   const { workspaces } = useSelector(state => state.workspace)
+  const { members } = useSelector(state => state.members)
 
   const [showCreateChannel, setShowCreateChannel] = useState(false)
   const [channelName, setChannelName] = useState('')
@@ -30,6 +37,7 @@ const WorkspacePage = () => {
   useEffect(() => {
     if (workspaceId) {
       dispatch(fetchChannels(workspaceId))
+      dispatch(fetchMembers(workspaceId))
     }
   }, [workspaceId, dispatch])
 
@@ -38,6 +46,25 @@ const WorkspacePage = () => {
       dispatch(setCurrentChannel(channels[0]))
     }
   }, [channels, currentChannel, dispatch])
+
+  // Listen for online/offline events
+  useEffect(() => {
+    const socket = getSocket()
+    if (!socket) return
+
+    socket.on('user-online', (data) => {
+      dispatch(setUserOnline(data))
+    })
+
+    socket.on('user-offline', (data) => {
+      dispatch(setUserOffline(data))
+    })
+
+    return () => {
+      socket.off('user-online')
+      socket.off('user-offline')
+    }
+  }, [dispatch])
 
   const handleCreateChannel = async (e) => {
     e.preventDefault()
@@ -48,6 +75,19 @@ const WorkspacePage = () => {
     if (!result.error) {
       setShowCreateChannel(false)
       setChannelName('')
+    }
+  }
+
+  const handleDeleteChannel = async (channelId, name) => {
+    if (!window.confirm(`Delete "#${name}"? All messages will be lost.`)) return
+    try {
+      await api.delete(`/workspaces/${workspaceId}/channels/${channelId}`)
+      dispatch(fetchChannels(workspaceId))
+      if (currentChannel?._id === channelId) {
+        dispatch(setCurrentChannel(null))
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to delete channel')
     }
   }
 
@@ -79,8 +119,11 @@ const WorkspacePage = () => {
       </nav>
 
       <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
         <div className="w-60 bg-gray-800 flex flex-col shrink-0">
           <div className="p-4">
+
+            {/* Channels Section */}
             <div className="flex justify-between items-center mb-3">
               <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
                 Channels
@@ -96,31 +139,94 @@ const WorkspacePage = () => {
             </div>
 
             {channels.length === 0 ? (
-              <p className="text-gray-500 text-xs">No channels yet</p>
+              <p className="text-gray-500 text-xs mb-4">No channels yet</p>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-1 mb-6">
                 {channels.map(channel => (
-                  <button
+                  <div
                     key={channel._id}
-                    onClick={() => dispatch(setCurrentChannel(channel))}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                    className={`group flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
                       currentChannel?._id === channel._id
                         ? 'bg-gray-600 text-white'
                         : 'text-gray-400 hover:bg-gray-700 hover:text-white'
                     }`}
                   >
-                    # {channel.name}
-                  </button>
+                    <button
+                      onClick={() => dispatch(setCurrentChannel(channel))}
+                      className="flex-1 text-left"
+                    >
+                      # {channel.name}
+                    </button>
+                    {userRole === 'admin' && (
+                      <button
+                        onClick={() => handleDeleteChannel(channel._id, channel.name)}
+                        className="text-red-400 hover:text-red-300 text-xs ml-2 opacity-0 group-hover:opacity-100"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
+
+            {/* Members Section */}
+            <div className="mb-3">
+              <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                Members — {members.length}
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {members.map(member => (
+                <div
+                  key={member._id}
+                  className="flex items-center gap-2 px-2 py-1"
+                >
+                  {/* Avatar */}
+                  <div className="relative">
+                    <div className="w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">
+                        {member.userId?.name?.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    {/* Online dot */}
+                    <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-gray-800 ${
+                      member.userId?.isOnline
+                        ? 'bg-green-400'
+                        : 'bg-gray-500'
+                    }`} />
+                  </div>
+
+                  {/* Name and role */}
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-xs truncate ${
+                      member.userId?.isOnline
+                        ? 'text-white'
+                        : 'text-gray-500'
+                    }`}>
+                      {member.userId?.name}
+                      {member.userId?._id === user?._id && ' (you)'}
+                    </p>
+                  </div>
+
+                  {/* Role badge */}
+                  {member.role === 'admin' && (
+                    <span className="text-purple-400 text-xs">
+                      admin
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
+          {/* Bottom user info */}
           <div className="mt-auto p-4 border-t border-gray-700">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
                 <span className="text-white text-sm font-bold">
-                  {workspace?.name?.charAt(0).toUpperCase()}
+                  {user?.name?.charAt(0).toUpperCase()}
                 </span>
               </div>
               <div>
@@ -136,11 +242,13 @@ const WorkspacePage = () => {
           </div>
         </div>
 
+        {/* Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {currentChannel ? (
             <ChatArea
               channel={currentChannel}
               workspaceId={workspaceId}
+              token={token}
             />
           ) : (
             <div className="flex-1 flex items-center justify-center text-gray-400">
@@ -153,6 +261,7 @@ const WorkspacePage = () => {
         </div>
       </div>
 
+      {/* Create Channel Modal */}
       {showCreateChannel && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm">

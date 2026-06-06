@@ -36,6 +36,17 @@ export const joinWorkspace = createAsyncThunk(
     }
   }
 )
+export const deleteWorkspaceAction = createAsyncThunk(
+  'workspace/delete',
+  async (workspaceId, { rejectWithValue }) => {
+    try {
+      await api.delete(`/workspaces/${workspaceId}`)
+      return workspaceId
+    } catch (error) {
+      return rejectWithValue(error.response.data.message)
+    }
+  }
+)
 
 const workspaceSlice = createSlice({
   name: 'workspace',
@@ -78,6 +89,11 @@ const workspaceSlice = createSlice({
           role: 'member'
         })
       })
+      .addCase(deleteWorkspaceAction.fulfilled, (state, action) => {
+  state.workspaces = state.workspaces.filter(
+    w => w._id !== action.payload
+  )
+})
   }
 })
 
