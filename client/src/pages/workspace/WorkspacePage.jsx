@@ -12,6 +12,7 @@ import {
   setUserOffline
 } from '../../features/members/membersSlice'
 import ChatArea from '../../components/channel/ChatArea'
+import NotesArea from '../../components/notes/NotesArea'
 import api from '../../services/api'
 import { getSocket } from '../../socket/socket'
 
@@ -27,6 +28,7 @@ const WorkspacePage = () => {
 
   const [showCreateChannel, setShowCreateChannel] = useState(false)
   const [channelName, setChannelName] = useState('')
+  const [activeTab, setActiveTab] = useState('chat')
 
   const workspace = useMemo(() =>
     workspaces.find(w => w._id === workspaceId) || null
@@ -47,7 +49,6 @@ const WorkspacePage = () => {
     }
   }, [channels, currentChannel, dispatch])
 
-  // Listen for online/offline events
   useEffect(() => {
     const socket = getSocket()
     if (!socket) return
@@ -93,6 +94,7 @@ const WorkspacePage = () => {
 
   return (
     <div className="h-screen flex flex-col">
+      {/* Top Navbar */}
       <nav className="bg-white border-b px-6 py-3 flex justify-between items-center shrink-0">
         <div className="flex items-center gap-3">
           <button
@@ -121,7 +123,7 @@ const WorkspacePage = () => {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <div className="w-60 bg-gray-800 flex flex-col shrink-0">
-          <div className="p-4">
+          <div className="p-4 overflow-y-auto flex-1">
 
             {/* Channels Section */}
             <div className="flex justify-between items-center mb-3">
@@ -152,7 +154,10 @@ const WorkspacePage = () => {
                     }`}
                   >
                     <button
-                      onClick={() => dispatch(setCurrentChannel(channel))}
+                      onClick={() => {
+                        dispatch(setCurrentChannel(channel))
+                        setActiveTab('chat')
+                      }}
                       className="flex-1 text-left"
                     >
                       # {channel.name}
@@ -183,38 +188,26 @@ const WorkspacePage = () => {
                   key={member._id}
                   className="flex items-center gap-2 px-2 py-1"
                 >
-                  {/* Avatar */}
                   <div className="relative">
                     <div className="w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center">
                       <span className="text-white text-xs font-bold">
                         {member.userId?.name?.charAt(0).toUpperCase()}
                       </span>
                     </div>
-                    {/* Online dot */}
                     <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-gray-800 ${
-                      member.userId?.isOnline
-                        ? 'bg-green-400'
-                        : 'bg-gray-500'
+                      member.userId?.isOnline ? 'bg-green-400' : 'bg-gray-500'
                     }`} />
                   </div>
-
-                  {/* Name and role */}
                   <div className="flex-1 min-w-0">
                     <p className={`text-xs truncate ${
-                      member.userId?.isOnline
-                        ? 'text-white'
-                        : 'text-gray-500'
+                      member.userId?.isOnline ? 'text-white' : 'text-gray-500'
                     }`}>
                       {member.userId?.name}
                       {member.userId?._id === user?._id && ' (you)'}
                     </p>
                   </div>
-
-                  {/* Role badge */}
                   {member.role === 'admin' && (
-                    <span className="text-purple-400 text-xs">
-                      admin
-                    </span>
+                    <span className="text-purple-400 text-xs">admin</span>
                   )}
                 </div>
               ))}
@@ -222,7 +215,7 @@ const WorkspacePage = () => {
           </div>
 
           {/* Bottom user info */}
-          <div className="mt-auto p-4 border-t border-gray-700">
+          <div className="p-4 border-t border-gray-700 shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
                 <span className="text-white text-sm font-bold">
@@ -244,19 +237,49 @@ const WorkspacePage = () => {
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {currentChannel ? (
-            <ChatArea
-              channel={currentChannel}
-              workspaceId={workspaceId}
-              token={token}
-            />
+
+          {/* Tab Buttons */}
+          <div className="bg-white border-b px-6 flex gap-1 shrink-0">
+            <button
+              onClick={() => setActiveTab('chat')}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'chat'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              💬 Chat
+            </button>
+            <button
+              onClick={() => setActiveTab('notes')}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'notes'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              📝 Notes
+            </button>
+          </div>
+
+          {/* Tab Content */}
+          {activeTab === 'chat' ? (
+            currentChannel ? (
+              <ChatArea
+                channel={currentChannel}
+                workspaceId={workspaceId}
+                token={token}
+              />
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-gray-400">
+                {channels.length === 0
+                  ? 'No channels yet. Create one to get started.'
+                  : 'Select a channel to start chatting'
+                }
+              </div>
+            )
           ) : (
-            <div className="flex-1 flex items-center justify-center text-gray-400">
-              {channels.length === 0
-                ? 'No channels yet. Create one to get started.'
-                : 'Select a channel to start chatting'
-              }
-            </div>
+            <NotesArea workspaceId={workspaceId} />
           )}
         </div>
       </div>
