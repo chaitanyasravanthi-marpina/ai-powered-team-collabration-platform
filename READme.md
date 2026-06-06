@@ -2,13 +2,12 @@
 
 A full-stack real-time team collaboration web application built as a learning project using the **MERN Stack**. Inspired by Slack + Notion + AI Assistant.
 
-> 👨‍🎓 Built by **Chaitanya Sravanthi Marpina** — Computer Science Student
 
 ---
 
 ## 🔗 Links
 
-- 🌐 **Live Demo:** [Coming Soon after deployment]
+- 🌐 **Live Demo:** [https://ai-powered-team-collabration-platfo.vercel.app]
 - 💻 **GitHub:** [https://github.com/chaitanyasravanthi-marpina/ai-powered-team-collabration-platform](https://github.com/chaitanyasravanthi-marpina/ai-powered-team-collabration-platform)
 
 ---
